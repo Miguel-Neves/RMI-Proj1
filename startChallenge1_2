@@ -1,0 +1,10 @@
+#/bin/bash
+
+(cd simulator; ./simulator --param ../Labs/PathFinder/RMI_Challenge_1_2_Config.xml)&
+
+sleep 1
+
+(cd Viewer; ./Viewer)
+
+killall simulator
+
