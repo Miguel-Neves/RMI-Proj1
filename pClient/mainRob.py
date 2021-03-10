@@ -20,6 +20,16 @@ class MyRob(CRobLinkAngs):
         for l in reversed(self.labMap):
             print(''.join([str(l) for l in l]))
 
+    def set_start_cell(self, start_cell):
+        self.start_cell = start_cell
+
+    def set_targets(self, targets):
+        self.targets = targets
+        print targets
+
+    def set_challenge(self, challenge):
+        self.challenge = challenge
+
     def run(self):
         if self.status != 0:
             print("Connection refused or error")
@@ -116,16 +126,31 @@ rob_name = "pClient1"
 host = "localhost"
 pos = 1
 mapc = None
+start_cell = None
+targets =[]
+challenge = 1
 
 for i in range(1, len(sys.argv),2):
     if (sys.argv[i] == "--host" or sys.argv[i] == "-h") and i != len(sys.argv) - 1:
         host = sys.argv[i + 1]
     elif (sys.argv[i] == "--pos" or sys.argv[i] == "-p") and i != len(sys.argv) - 1:
         pos = int(sys.argv[i + 1])
-    elif (sys.argv[i] == "--robname" or sys.argv[i] == "-p") and i != len(sys.argv) - 1:
+    elif (sys.argv[i] == "--robname" or sys.argv[i] == "-r") and i != len(sys.argv) - 1:
         rob_name = sys.argv[i + 1]
     elif (sys.argv[i] == "--map" or sys.argv[i] == "-m") and i != len(sys.argv) - 1:
         mapc = Map(sys.argv[i + 1])
+    elif (sys.argv[i] == "--start" or sys.argv[i] == "-s") and i != len(sys.argv) - 1:
+        start_cell_row, start_cell_col = sys.argv[i + 1].split(',')
+        start_cell = (int(start_cell_row), int(start_cell_col))
+    elif (sys.argv[i] == "--targets" or sys.argv[i] == "-t") and i != len(sys.argv) - 1:
+        trgts = sys.argv[i + 1].split('_')
+        for t in trgts:
+            target_row, target_col = t.split(',')
+            targets.append((int(target_row), int(target_col)))   
+        #target_row, target_col = sys.argv[i + 1].split(',')
+        #targets.append((int(target_row), int(target_col)))
+    elif (sys.argv[i] == "--challenge" or sys.argv[i] == "-c") and i != len(sys.argv) - 1:
+        challenge = int(sys.argv[i + 1])
     else:
         print("Unkown argument", sys.argv[i])
         quit()
@@ -135,5 +160,10 @@ if __name__ == '__main__':
     if mapc != None:
         rob.setMap(mapc.labMap)
         rob.printMap()
+    if start_cell != None:
+        rob.set_start_cell(start_cell)
+    if targets:
+        rob.set_targets(targets)
+    rob.set_challenge(challenge)
     
     rob.run()

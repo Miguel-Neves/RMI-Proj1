@@ -1,4 +1,4 @@
-<Lab Name="Default LAB" Height="14" Width="28">
+<Lab Name="2Beacons Default LAB" Height="14" Width="28">
 		<Beacon X="25" Y="7.0" Height="4.0"/>
 		<Target X="25" Y="7.0" Radius="1.0"/>
 		<Beacon X="17" Y="13.0" Height="4.0"/>
