@@ -3,6 +3,8 @@ import sys
 from croblink import *
 from math import *
 import xml.etree.ElementTree as ET
+from itertools import permutations
+from path_planning import astar_search
 
 CELLROWS=7
 CELLCOLS=14
@@ -41,8 +43,8 @@ class MyRob(CRobLinkAngs):
         self.dest_cell = self.start_cell
         self.dest_angle = 0
 
-        # get directions list (hardcoded for now)
-        self.path = [(2,3), (3,3), (3,4), (4,4), (4,5), (5,5), (6,5), (6,6), (7,6), (8,6), (9,6), (10,6), (11,6), (11,5), (11,4), (11,3), (12,3)]
+        # get directions list
+        self.plan_path()
         self.path_index = 0
         self.get_next_dest()
 
@@ -54,7 +56,7 @@ class MyRob(CRobLinkAngs):
             self.readSensors()
 
             if not self.coords_offset:
-                #calcular offset
+                # calculate offset
                 self.coords_offset = (self.measures.x - self.transform_to_gps_pos(self.start_cell[0]), self.measures.y - self.transform_to_gps_pos(self.start_cell[1]))
 
             if self.measures.endLed:
@@ -92,8 +94,7 @@ class MyRob(CRobLinkAngs):
                     state='return'
                     self.num_targets_visited = 0
                     on_target = False
-                    self.path_index = 0
-                    self.path.pop()
+                    self.path_index = 1
                     self.path.reverse()
                     self.get_next_dest()
 
@@ -136,6 +137,7 @@ class MyRob(CRobLinkAngs):
             self.driveMotors(0.1,0.1)
 
     # --------------------------------------------
+    # MOVEMENT CONTROL & LOCALIZATION
 
     def decide(self):
         ROT_THRESHOLD = 0
@@ -180,6 +182,48 @@ class MyRob(CRobLinkAngs):
 
     def transform_to_gps_pos(self, axis):
         return axis*CELL_SIDE + CELL_SIDE/2
+
+    # --------------------------------------------
+    # PLANNING
+
+    def plan_path(self):
+        n_targets = len(self.targets)
+
+        # array with distance from start position to each target
+        dist_start_target = []
+        for i in range(0, n_targets):
+            dist_start_target.append(astar_search(self.labMap, self.start_cell, self.targets[i]))
+
+        # distance from each target to the others
+        dist_targets = [[0 for i in range(n_targets)] for j in range(n_targets)]
+
+        for i in range(0, n_targets-1):
+            for j in range(i+1, n_targets):
+                dist_targets[i][j] = astar_search(self.labMap, self.targets[i], self.targets[j])
+                # mirror path (m[i,j] = reversed m[j,i])
+                dist_targets[j][i] = dist_targets[i][j][:]
+                dist_targets[j][i].reverse()
+
+        target_idx = [idx for idx in range(n_targets)]
+        # iterate through all the possible path combinations and find the shortest
+        shortest_path = []
+        shortest_path_length = CELLCOLS*CELLROWS*2
+        for p in permutations(target_idx):
+            cur_path = [p[0]]
+            cur_path_length = len(dist_start_target[p[0]])
+            for idx in range(0, n_targets-1):
+                cur_path.append((p[idx], p[idx+1]))
+                cur_path_length += len(dist_targets[p[idx]][p[idx+1]])
+            if shortest_path_length > cur_path_length:
+                shortest_path = cur_path
+                shortest_path_length = cur_path_length
+
+        final_path = dist_start_target[shortest_path[0]]
+        for t in range(0, n_targets-1):
+            final_path.extend(dist_targets[shortest_path[t+1][0]][shortest_path[t+1][1]][1:])
+        print("Planned path:")
+        print(final_path)
+        self.path = final_path
 
     # --------------------------------------------
 
@@ -235,9 +279,7 @@ for i in range(1, len(sys.argv),2):
         trgts = sys.argv[i + 1].split('_')
         for t in trgts:
             target_row, target_col = t.split(',')
-            targets.append((int(target_row), int(target_col)))   
-        #target_row, target_col = sys.argv[i + 1].split(',')
-        #targets.append((int(target_row), int(target_col)))
+            targets.append((int(target_row), int(target_col)))
     elif (sys.argv[i] == "--challenge" or sys.argv[i] == "-c") and i != len(sys.argv) - 1:
         challenge = int(sys.argv[i + 1])
     else:
